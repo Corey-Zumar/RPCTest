@@ -16,6 +16,7 @@ class RPCClient {
   void shutdown();
 
  private:
+  void disconnect_socket(zmq::socket_t* socket, std::string address);
   std::string get_address(std::string ip, int port);
 
  private:

@@ -23,18 +23,22 @@ void RPCClient::send_message(uint8_t *msg, size_t len, int container_id) {
 
 void RPCClient::shutdown() {
   for(auto entry : *active_connections) {
-    entry.second.socket->disconnect(entry.second.address);
-    entry.second.socket->close();
+    disconnect_socket(entry.second.socket, entry.second.address);
   }
 }
 
 void RPCClient::disconnect(int container_id) {
   const std::unordered_map<int, ModelContainer>::const_iterator entry = active_connections->find(container_id);
   if (entry != active_connections->end()) {
-    entry->second.socket->disconnect(entry->second.address);
-    entry->second.socket->close();
+    disconnect_socket(entry->second.socket, entry->second.address);
     active_connections->erase(entry);
   }
+}
+
+void RPCClient::disconnect_socket(zmq::socket_t *socket, std::string address) {
+  socket->disconnect(address);
+  socket->close();
+  delete socket;
 }
 
 std::string RPCClient::get_address(std::string ip, int port) {
