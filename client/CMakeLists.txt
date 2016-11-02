@@ -3,7 +3,7 @@ project(Test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES main.cpp RPCClient.cpp RPCClient.h ModelContainer.cpp ModelContainer.h)
+set(SOURCE_FILES main.cpp RPCClient.cpp RPCClient.h ModelContainer.cpp ModelContainer.h RPCServer.cpp RPCServer.h RPCUtil.cpp RPCUtil.h ModelConfigStore.cpp ModelConfigStore.h RPCConnection.cpp RPCConnection.h)
 add_executable(Test ${SOURCE_FILES})
 
 include_directories(

@@ -5,8 +5,7 @@
 #include <zmq.hpp>
 class ModelContainer {
  public:
-  ModelContainer(std::string container_address, zmq::socket_t* container_socket);
-  zmq::socket_t* socket;
+  ModelContainer(std::string container_address);
   std::string address;
 };
 
