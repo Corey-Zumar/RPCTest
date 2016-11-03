@@ -18,9 +18,7 @@ class Server(threading.Thread):
 
 	def handle_message(self, msg):
 		# Do work
-		print "Received Message:", msg
 		msg.set_content("Acknowledged!")
-		time.sleep(2)
 		return msg
 
 	def run(self):
@@ -54,7 +52,6 @@ class Message:
 		socket.send("", flags=zmq.SNDMORE)
 		socket.send(self.msg_id, flags=zmq.SNDMORE)
 		socket.send(self.content)
-		print self.content
 
 
 if __name__ == "__main__":
