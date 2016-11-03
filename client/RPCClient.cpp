@@ -9,9 +9,9 @@ RPCClient::RPCClient(ModelConfigStore *model_store) :
 void RPCClient::send_message(uint8_t *msg,
                              size_t len,
                              int container_id,
-                             std::function<void(uint8_t *)> *callback) {
+                             std::function<void(uint8_t *, size_t)> *callback) {
   std::unordered_map<int, std::unique_ptr<RPCConnection>>::const_iterator connection = connections.find(container_id);
-  if(connection != connections.end()) {
+  if (connection != connections.end()) {
     connection->second->queue_message(msg, len, callback);
   }
 }
@@ -26,4 +26,13 @@ void RPCClient::connect(int container_id, std::function<void(bool)> *callback) {
   }
   std::unique_ptr<RPCConnection> connection = std::unique_ptr<RPCConnection>(new RPCConnection(model->address));
   connections.emplace(container_id, std::move(connection));
+}
+
+void RPCClient::disconnect(int container_id) {
+  std::unordered_map<int, std::unique_ptr<RPCConnection>>::iterator connection = connections.find(container_id);
+  if(connection != connections.end()) {
+    connection->second.operator*().shutdown();
+    connection->second.reset();
+    connections.erase(container_id);
+  }
 }

@@ -11,7 +11,8 @@ void serve_model_discovery(ModelConfigStore* model_store) {
   discover_server.start(RPCUtil::get_address("127.0.0.1", 7005));
 }
 
-void handle_response(uint8_t* msg) {
+void handle_response(uint8_t* msg, size_t len) {
+  ((char*) msg)[len] = '\0';
   printf("%s\n", (char*) msg);
 }
 
@@ -24,13 +25,16 @@ int main() {
   RPCClient client = RPCClient(&model_store);
   client.connect(model1_id, NULL);
 
-  std::function<void(uint8_t*)> callback = handle_response;
+  std::function<void(uint8_t*, size_t)> callback = handle_response;
 
   for(int i = 0; i < 10; i++) {
     usleep(1000000);
     client.send_message((uint8_t*) "cat", 4, model1_id, &callback);
     printf("SENT MESSAGE\n");
   }
+  usleep(6000000);
+  client.disconnect(model1_id);
+  usleep(5000000);
 
   return 2;
 }

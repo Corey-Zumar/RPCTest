@@ -12,8 +12,9 @@ class RPCClient {
   void send_message(uint8_t *msg,
                     size_t len,
                     int container_id,
-                    std::function<void(uint8_t *)> *callback);
+                    std::function<void(uint8_t *, size_t)> *callback);
   void connect(int container_id, std::function<void(bool)> *callback);
+  void disconnect(int container_id);
 
  private:
   std::unordered_map<int, std::unique_ptr<RPCConnection>> connections;

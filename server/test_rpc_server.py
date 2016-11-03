@@ -20,6 +20,7 @@ class Server(threading.Thread):
 		# Do work
 		print "Received Message:", msg
 		msg.set_content("Acknowledged!")
+		time.sleep(2)
 		return msg
 
 	def run(self):
@@ -54,7 +55,6 @@ class Message:
 		socket.send(self.msg_id, flags=zmq.SNDMORE)
 		socket.send(self.content)
 		print self.content
-		print self.msg_id
 
 
 if __name__ == "__main__":
