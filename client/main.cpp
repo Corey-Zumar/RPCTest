@@ -5,15 +5,30 @@
 #include "RPCServer.h"
 #include "RPCUtil.h"
 
-void serve_model_discovery(ModelConfigStore* model_store) {
-  RPCServer discover_server(model_store);
-  // Read from conf file in future
-  discover_server.start(RPCUtil::get_address("127.0.0.1", 7005));
-}
+using namespace std;
 
 void handle_response(uint8_t* msg, size_t len) {
   ((char*) msg)[len] = '\0';
   printf("%s\n", (char*) msg);
+}
+
+void test_discovery(ModelConfigStore* model_store) {
+  RPCClient client(model_store);
+
+  function<void(uint8_t*, size_t)> msg_callback = handle_response;
+
+  function<void(int)> callback = [&](int container_id) {
+    printf("DISCOVERED CONTAINER: %d\n", container_id);
+    client.connect(container_id, NULL);
+    client.send_message((uint8_t*) "cat", 4, container_id, &msg_callback);
+  };
+
+  RPCServer discover_server(model_store, &callback);
+  // Read from conf file in future
+  discover_server.start(RPCUtil::get_address("127.0.0.1", 7005));
+  while(true) {
+    usleep(1000000);
+  }
 }
 
 void test_functionality() {
@@ -45,9 +60,6 @@ void benchmark() {
   RPCClient client = RPCClient(&model_store);
   client.connect(model1_id, NULL);
 
-  std::chrono::milliseconds start_ms = std::chrono::duration_cast<std::chrono::milliseconds >(
-      std::chrono::system_clock::now().time_since_epoch());
-
   long start = 0;
 
   std::function<void(uint8_t*, size_t)> callback = [&](uint8_t* msg, size_t len) {
@@ -57,12 +69,14 @@ void benchmark() {
   };
 
   uint8_t* data = (uint8_t*) malloc(8 * 784 * 500);
-  start = start_ms.count();
+  start = std::chrono::duration_cast<std::chrono::milliseconds >(
+      std::chrono::system_clock::now().time_since_epoch()).count();
   client.send_message(data, 8 * 784 * 500, model1_id, &callback);
   usleep(10000000);
 }
 
 int main() {
-  benchmark();
+  //benchmark();
+  test_discovery(new ModelConfigStore());
   return 2;
 }

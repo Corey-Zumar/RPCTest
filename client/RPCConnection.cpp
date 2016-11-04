@@ -2,16 +2,25 @@
 #include "RPCConnection.h"
 #include "RPCUtil.h"
 
-RPCConnection::RPCConnection(std::string address) {
-  outbound_queue = std::shared_ptr<std::queue<OutboundMessage>>(new std::queue<OutboundMessage>());
-  callbacks = std::shared_ptr<std::unordered_map<std::string, std::function<void(uint8_t *, size_t)> *>>(
-      new std::unordered_map<std::string, std::function<void(uint8_t *, size_t)> *>());
-  queue_lock = std::shared_ptr<std::mutex>(new std::mutex());
-  connection_thread =
-      std::thread(&RPCConnection::manage_connection, address, &interrupted, queue_lock, outbound_queue, callbacks);
+using namespace std;
+using namespace zmq;
+
+RPCConnection::RPCConnection(string address, function<void(bool)>* connection_callback) {
+  outbound_queue = shared_ptr<queue<OutboundMessage>>(new queue<OutboundMessage>());
+  callbacks = shared_ptr<unordered_map<string, function<void(uint8_t *, size_t)> *>>(
+      new unordered_map<string, function<void(uint8_t *, size_t)> *>());
+  queue_lock = shared_ptr<mutex>(new mutex());
+  connection_thread = thread(&RPCConnection::manage_connection,
+                             address,
+                             &interrupted,
+                             connection_callback,
+                             queue_lock,
+                             outbound_queue,
+                             callbacks);
 }
 
 RPCConnection::~RPCConnection() {
+  shutdown();
   outbound_queue.reset();
   callbacks.reset();
   queue_lock.reset();
@@ -19,7 +28,7 @@ RPCConnection::~RPCConnection() {
 
 void RPCConnection::queue_message(uint8_t *msg_content,
                                   size_t msg_len,
-                                  std::function<void(uint8_t *, size_t)> *msg_callback) {
+                                  function<void(uint8_t *, size_t)> *msg_callback) {
   queue_lock->lock();
   outbound_queue->push(OutboundMessage(msg_content, msg_len, msg_callback));
   queue_lock->unlock();
@@ -29,15 +38,18 @@ void RPCConnection::shutdown() {
   interrupted = true;
 }
 
-void RPCConnection::manage_connection(std::string address,
-                                      bool* interrupted,
-                                      std::shared_ptr<std::mutex> queue_lock,
-                                      std::shared_ptr<std::queue<OutboundMessage>> outbound_messages,
-                                      std::shared_ptr<std::unordered_map<std::string,
-                                                                         std::function<void(uint8_t *,
-                                                                                            size_t)> *>> callbacks) {
-  zmq::socket_t socket(RPCUtil::context, ZMQ_DEALER);
+void RPCConnection::manage_connection(string address,
+                                      bool *interrupted,
+                                      function<void(bool)>* connection_callback,
+                                      shared_ptr<mutex> queue_lock,
+                                      shared_ptr<queue<OutboundMessage>> outbound_messages,
+                                      shared_ptr<unordered_map<string,
+                                                               function<void(uint8_t *, size_t)> *>> callbacks) {
+  socket_t socket(RPCUtil::context, ZMQ_DEALER);
   socket.connect(address);
+  if(connection_callback) {
+    connection_callback->operator()(true);
+  }
   int msg_num = 0;
   zmq_pollitem_t items[] = {{socket, 0, ZMQ_POLLIN, 0}};
   while (true) {
@@ -57,18 +69,18 @@ void RPCConnection::manage_connection(std::string address,
 }
 
 void RPCConnection::receive_message(
-    zmq::socket_t *socket,
-    std::shared_ptr<std::unordered_map<std::string, std::function<void(uint8_t *, size_t)> *>> callbacks) {
-  zmq::message_t delimiter;
-  zmq::message_t id_msg;
-  zmq::message_t content;
+    socket_t *socket,
+    shared_ptr<unordered_map<string, function<void(uint8_t *, size_t)> *>> callbacks) {
+  message_t delimiter;
+  message_t id_msg;
+  message_t content;
   socket->recv(&delimiter, 0);
   socket->recv(&id_msg, 0);
   socket->recv(&content, 0);
   char *raw_id = (char *) id_msg.data();
   raw_id[id_msg.size()] = '\0';
-  std::string id = std::string(raw_id);
-  std::unordered_map<std::string, std::function<void(uint8_t *, size_t)> *>::const_iterator
+  string id = string(raw_id);
+  unordered_map<string, function<void(uint8_t *, size_t)> *>::const_iterator
       callback = callbacks->find(id);
   if (callback != callbacks->end() && callback->second) {
     callback->second->operator()((uint8_t *) content.data(), content.size());
@@ -76,12 +88,10 @@ void RPCConnection::receive_message(
   }
 }
 
-void RPCConnection::send_messages(zmq::socket_t *socket,
-                                  std::shared_ptr<std::mutex> queue_lock,
-                                  std::shared_ptr<std::queue<OutboundMessage>> outbound_messages,
-                                  std::shared_ptr<std::unordered_map<std::string,
-                                                                     std::function<void(uint8_t *,
-                                                                                        size_t len)> *>> callbacks,
+void RPCConnection::send_messages(socket_t *socket,
+                                  shared_ptr<mutex> queue_lock,
+                                  shared_ptr<queue<OutboundMessage>> outbound_messages,
+                                  shared_ptr<unordered_map<string, function<void(uint8_t *, size_t len)> *>> callbacks,
                                   int *msg_id) {
   if (outbound_messages->empty()) {
     return;
@@ -89,7 +99,7 @@ void RPCConnection::send_messages(zmq::socket_t *socket,
   queue_lock->lock();
   while (!outbound_messages->empty()) {
     OutboundMessage msg = outbound_messages->front();
-    std::string id = std::to_string(*msg_id);
+    string id = to_string(*msg_id);
     socket->send("", 0, ZMQ_SNDMORE);
     socket->send(id.c_str(), id.length(), ZMQ_SNDMORE);
     socket->send(msg.content, msg.len - 1, 0);
@@ -100,7 +110,7 @@ void RPCConnection::send_messages(zmq::socket_t *socket,
   queue_lock->unlock();
 }
 
-void RPCConnection::stop(zmq::socket_t *socket, std::string address) {
+void RPCConnection::stop(socket_t *socket, string address) {
   socket->disconnect(address);
   socket->close();
 }
