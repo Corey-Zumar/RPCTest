@@ -22,9 +22,8 @@ class RPCClient {
  private:
   RPCClient(const RPCClient &);
   RPCClient &operator=(const RPCClient &);
-  void stop(unique_ptr<RPCConnection> connection);
   const ModelConfigStore &models;
-  unordered_map<int, unique_ptr<RPCConnection>> connections;
+  unordered_map<int, RPCConnection> connections;
 };
 
 #endif TEST_RPCCLIENT_H

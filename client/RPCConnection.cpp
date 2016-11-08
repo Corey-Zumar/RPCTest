@@ -100,7 +100,6 @@ void RPCConnection::send_messages(socket_t &socket,
     callbacks.emplace(id, msg.callback);
     outbound_messages.pop();
     msg_id++;
-    printf("%d\n", msg_id);
   }
   queue_lock.unlock();
 }

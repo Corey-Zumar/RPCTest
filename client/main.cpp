@@ -80,9 +80,9 @@ void benchmark() {
 }
 
 int main() {
-  //benchmark();
+  benchmark();
 //  ModelConfigStore store;
 //  test_discovery(store);
-  test_functionality();
+  //test_functionality();
   return 2;
 }
