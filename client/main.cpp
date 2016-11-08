@@ -68,7 +68,7 @@ void benchmark() {
 
   long total_millis = 0;
 
-  for(int i = 0; i < 500; i++) {
+  for(int i = 0; i < 300; i++) {
 
     long start = 0;
 
@@ -76,7 +76,7 @@ void benchmark() {
       std::chrono::milliseconds end_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch());
       printf("TIME TAKEN: %d ms\n", end_ms.count() - start);
-      total_millis += (end_ms.count() - start);
+      total_millis += (end_ms.count() - start) > 0 ? end_ms.count() - start : 1;
     };
 
     uint8_t *data = (uint8_t *) malloc(8 * 784 * 500);
@@ -86,8 +86,9 @@ void benchmark() {
     printf(timestamp.c_str());
     client.send_message(data, 8 * 784 * 500, model1_id, callback);
     usleep(100000);
+    free(data);
   }
-  printf("AVG: %f\n", float(total_millis) / 500);
+  printf("AVG: %f\n", float(total_millis) / 300);
   usleep(10000000);
 }
 
