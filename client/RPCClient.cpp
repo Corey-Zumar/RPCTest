@@ -9,7 +9,7 @@ RPCClient::RPCClient(const ModelConfigStore &model_store) :
 }
 
 RPCClient::~RPCClient() {
-  for (auto &entry : connections) {
+  for (auto& entry : connections) {
     entry.second.shutdown();
   }
 }

@@ -6,6 +6,7 @@
 class RPCUtil {
  public:
   static const std::string get_address(std::string ip, uint16_t port);
+  static void log_millis(std::string tag);
   static zmq::context_t context;
 };
 

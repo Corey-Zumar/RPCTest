@@ -27,7 +27,7 @@ void test_discovery(ModelConfigStore& model_store) {
   // Read from conf file in future
   discover_server.start(RPCUtil::get_address("127.0.0.1", 7005));
   for(int i = 0; i < 10; i++) {
-    usleep(400000);
+    usleep(1000000);
   }
   discover_server.stop();
   usleep(2000000);
@@ -64,25 +64,37 @@ void benchmark() {
 
   });
 
-  long start = 0;
+  usleep(1000000);
 
-  std::function<void(uint8_t*, size_t)> callback = [&](uint8_t* msg, size_t len) {
-    std::chrono::milliseconds end_ms = std::chrono::duration_cast<std::chrono::milliseconds >(
-        std::chrono::system_clock::now().time_since_epoch());
-    printf("TIME TAKEN: %d ms\n", end_ms.count() - start);
-  };
+  long total_millis = 0;
 
-  uint8_t* data = (uint8_t*) malloc(8 * 784 * 500);
-  start = std::chrono::duration_cast<std::chrono::milliseconds >(
-      std::chrono::system_clock::now().time_since_epoch()).count();
-  client.send_message(data, 8 * 784 * 500, model1_id, callback);
+  for(int i = 0; i < 500; i++) {
+
+    long start = 0;
+
+    std::function<void(uint8_t *, size_t)> callback = [&](uint8_t *msg, size_t len) {
+      std::chrono::milliseconds end_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::system_clock::now().time_since_epoch());
+      printf("TIME TAKEN: %d ms\n", end_ms.count() - start);
+      total_millis += (end_ms.count() - start);
+    };
+
+    uint8_t *data = (uint8_t *) malloc(8 * 784 * 500);
+    start = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    string timestamp = "START: " + to_string(start) + "\n";
+    printf(timestamp.c_str());
+    client.send_message(data, 8 * 784 * 500, model1_id, callback);
+    usleep(100000);
+  }
+  printf("AVG: %f\n", float(total_millis) / 500);
   usleep(10000000);
 }
 
 int main() {
-  benchmark();
-//  ModelConfigStore store;
-//  test_discovery(store);
+  //ModelConfigStore store;
+  //test_discovery(store);
   //test_functionality();
+  benchmark();
   return 2;
 }

@@ -96,7 +96,9 @@ void RPCConnection::send_messages(socket_t &socket,
     string id = to_string(msg_id);
     socket.send("", 0, ZMQ_SNDMORE);
     socket.send(id.c_str(), id.length(), ZMQ_SNDMORE);
+    //RPCUtil::log_millis("PRSEND");
     socket.send(msg.content, msg.len - 1, 0);
+    //RPCUtil::log_millis("POSEND");
     callbacks.emplace(id, msg.callback);
     outbound_messages.pop();
     msg_id++;
