@@ -12,7 +12,7 @@ void handle_response(uint8_t* msg, size_t len) {
   printf("%s\n", (char*) msg);
 }
 
-void test_discovery(ModelConfigStore* model_store) {
+void test_discovery(ModelConfigStore& model_store) {
   RPCClient client(model_store);
 
   function<void(uint8_t*, size_t)> msg_callback = handle_response;
@@ -20,15 +20,17 @@ void test_discovery(ModelConfigStore* model_store) {
   function<void(int)> callback = [&](int container_id) {
     printf("DISCOVERED CONTAINER: %d\n", container_id);
     client.connect(container_id, NULL);
-    client.send_message((uint8_t*) "cat", 4, container_id, &msg_callback);
+    client.send_message((uint8_t*) "cat", 4, container_id, msg_callback);
   };
 
-  RPCServer discover_server(model_store, &callback);
+  RPCServer discover_server(model_store, callback);
   // Read from conf file in future
   discover_server.start(RPCUtil::get_address("127.0.0.1", 7005));
-  while(true) {
-    usleep(1000000);
+  for(int i = 0; i < 10; i++) {
+    usleep(400000);
   }
+  discover_server.stop();
+  usleep(2000000);
 }
 
 void test_functionality() {
@@ -37,13 +39,13 @@ void test_functionality() {
   ModelContainer model1 = ModelContainer(RPCUtil::get_address("127.0.0.1", 7010));
   model_store.insert(model1_id, model1);
 
-  RPCClient client = RPCClient(&model_store);
+  RPCClient client(model_store);
   client.connect(model1_id, NULL);
 
   std::function<void(uint8_t*, size_t)> callback = handle_response;
   for(int i = 0; i < 10; i++) {
     usleep(1000000);
-    client.send_message((uint8_t*) "cat", 4, model1_id, &callback);
+    client.send_message((uint8_t*) "cat", 4, model1_id, callback);
     printf("SENT MESSAGE\n");
   }
   usleep(6000000);
@@ -54,11 +56,13 @@ void test_functionality() {
 void benchmark() {
   ModelConfigStore model_store;
   int model1_id = 1;
-  ModelContainer model1 = ModelContainer(RPCUtil::get_address("127.0.0.1", 7010));
+  ModelContainer model1(RPCUtil::get_address("127.0.0.1", 7010));
   model_store.insert(model1_id, model1);
 
-  RPCClient client = RPCClient(&model_store);
-  client.connect(model1_id, NULL);
+  RPCClient client(model_store);
+  client.connect(model1_id, [](bool successful) {
+
+  });
 
   long start = 0;
 
@@ -71,12 +75,14 @@ void benchmark() {
   uint8_t* data = (uint8_t*) malloc(8 * 784 * 500);
   start = std::chrono::duration_cast<std::chrono::milliseconds >(
       std::chrono::system_clock::now().time_since_epoch()).count();
-  client.send_message(data, 8 * 784 * 500, model1_id, &callback);
+  client.send_message(data, 8 * 784 * 500, model1_id, callback);
   usleep(10000000);
 }
 
 int main() {
   //benchmark();
-  test_discovery(new ModelConfigStore());
+//  ModelConfigStore store;
+//  test_discovery(store);
+  test_functionality();
   return 2;
 }

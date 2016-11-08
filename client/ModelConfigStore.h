@@ -4,9 +4,8 @@
 #include "ModelContainer.h"
 class ModelConfigStore {
  public:
-  ModelConfigStore();
   void insert(int id, ModelContainer container_config);
-  ModelContainer* get(int id);
+  const ModelContainer* get(int id) const;
   bool remove(int id);
  private:
   std::unordered_map<int, ModelContainer> containers;

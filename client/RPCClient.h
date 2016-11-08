@@ -10,17 +10,21 @@ using namespace std;
 
 class RPCClient {
  public:
-  RPCClient(ModelConfigStore *model_store);
+  RPCClient(const ModelConfigStore &model_store);
+  ~RPCClient();
   void send_message(uint8_t *msg,
                     size_t len,
                     int container_id,
-                    function<void(uint8_t *, size_t)> *callback);
-  void connect(int container_id, function<void(bool)>* callback);
+                    function<void(uint8_t *, size_t)> callback);
+  void connect(int container_id, function<void(bool)> callback);
   void disconnect(int container_id);
 
  private:
+  RPCClient(const RPCClient &);
+  RPCClient &operator=(const RPCClient &);
+  void stop(unique_ptr<RPCConnection> connection);
+  const ModelConfigStore &models;
   unordered_map<int, unique_ptr<RPCConnection>> connections;
-  ModelConfigStore *models;
 };
 
 #endif TEST_RPCCLIENT_H

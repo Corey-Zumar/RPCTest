@@ -10,21 +10,23 @@ using namespace zmq;
 
 class RPCServer {
  public:
-  RPCServer(ModelConfigStore *model_store, function<void(int)> *connection_callback);
+  RPCServer(ModelConfigStore &model_store, const function<void(int)> connection_callback);
   ~RPCServer();
-  void start(std::string address);
+  void start(const std::string &address);
   void stop();
  private:
-  static void listen(string address,
-                     ModelConfigStore *model_store,
-                     function<void(int)> *connection_callback,
-                     bool *interrupted);
-  static bool save_container(int container_id, message_t *msg, ModelConfigStore *model_store);
-  static void send_ack(socket_t *socket);
-  static void shutdown(string address, socket_t *socket);
+  RPCServer(const RPCServer &);
+  RPCServer &operator=(const RPCServer &);
+  static void listen(const string &address,
+                     ModelConfigStore &models,
+                     const function<void(int)> connection_callback,
+                     const bool &interrupted);
+  static bool save_container(int container_id, const message_t &msg, ModelConfigStore &model_store);
+  static void send_ack(socket_t &socket);
+  static void shutdown(const string &address, socket_t &socket);
   thread server_thread;
-  function<void(int)> *connection_callback;
-  ModelConfigStore *models;
+  const function<void(int)> connection_callback;
+  ModelConfigStore &models;
   bool interrupted = false;
 };
 

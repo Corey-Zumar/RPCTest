@@ -3,26 +3,32 @@
 
 using namespace std;
 
-RPCClient::RPCClient(ModelConfigStore *model_store) :
-    connections(unordered_map<int, unique_ptr<RPCConnection>>()) {
-  models = model_store;
+RPCClient::RPCClient(const ModelConfigStore &model_store) :
+    models(model_store), connections(unordered_map<int, unique_ptr<RPCConnection>>()) {
+
+}
+
+RPCClient::~RPCClient() {
+//  for (auto entry : connections) {
+//    stop(entry.second);
+//  }
 }
 
 void RPCClient::send_message(uint8_t *msg,
                              size_t len,
                              int container_id,
-                             function<void(uint8_t *, size_t)> *callback) {
+                             function<void(uint8_t *, size_t)> callback) {
   unordered_map<int, unique_ptr<RPCConnection>>::const_iterator connection = connections.find(container_id);
   if (connection != connections.end()) {
     connection->second->queue_message(msg, len, callback);
   }
 }
 
-void RPCClient::connect(int container_id, function<void(bool)>* callback) {
-  ModelContainer *model = models->get(container_id);
+void RPCClient::connect(int container_id, function<void(bool)> callback) {
+  const ModelContainer *model = models.get(container_id);
   if (!model) {
-    if (callback) {
-      callback->operator()(false);
+    if (callback) { // What does this do now???
+      callback(false);
     }
     return;
   }
@@ -32,9 +38,13 @@ void RPCClient::connect(int container_id, function<void(bool)>* callback) {
 
 void RPCClient::disconnect(int container_id) {
   unordered_map<int, unique_ptr<RPCConnection>>::iterator connection = connections.find(container_id);
-  if(connection != connections.end()) {
-    connection->second.operator*().shutdown();
-    connection->second.reset();
+  if (connection != connections.end()) {
+    stop(move(connection->second));
     connections.erase(container_id);
   }
+}
+
+void RPCClient::stop(unique_ptr<RPCConnection> connection) {
+  connection->shutdown();
+  connection.reset();
 }
